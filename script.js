@@ -62,7 +62,7 @@ function createContributionBlocks(numberOfBlocks, blockWidth, blockHeight, fallW
             render: {
                 fillStyle: color,
                 strokeStyle: color,
-                lineWidth: 1
+                lineWidth: 3
             }
         });
         setTimeout(() => {
