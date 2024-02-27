@@ -112,18 +112,21 @@ window.addEventListener('resize', function() {
 
 ///////////Cont graph
 
-const contributions = [
-    { date: "2023-02-27", count: 0 },
-    { date: "2023-02-28", count: 0 },
-    { date: "2023-03-01", count: 0 },
-    { date: "2023-03-02", count: 0 },
-    { date: "2023-03-03", count: 0 },
-    { date: "2023-03-04", count: 0 },
-    { date: "2023-03-05", count: 0 },
-    { date: "2023-03-06", count: 0 },
-    { date: "2023-03-07", count: 0 },
-    // Add more data points as needed
-  ];
+const contributions = [];
+const oneYearAgo = new Date();
+oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+for (let i = 0; i < 365; i++) {
+    const date = new Date(oneYearAgo.getTime());
+    date.setDate(date.getDate() + i);
+    const count = i < 100 ? null : Math.floor(Math.random() * 101); // Random count between 0 and 100 for days after the first 100
+    contributions.push({
+        date: date.toISOString().split('T')[0], // Format the date as "YYYY-MM-DD"
+        count: count,
+    });
+}
+
+console.log(contributions);
 
   // Dimensions and margins for the graph
   const width = 960,
