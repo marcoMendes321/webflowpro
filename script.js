@@ -249,36 +249,31 @@ function processAndRenderGraph(contributions) {
             .attr('style', 'font-size: 10px; fill: #aaa;');
 }
 
-// Fetch data and call the rendering function
-fetch('https://api.github.com/repos/username/repo/stats/commit_activity')
-    .then(response => response.json())
-    .then(data => {
-        const contributions = data.map(week => {
-            return week.days.map((dayCount, index) => {
-                const date = new Date(week.week * 1000); // Convert UNIX timestamp to JS Date
-                date.setDate(date.getDate() + index); // Add day of the week
-                let count = dayCount;
+// Simulate a year's worth of contribution data
+const contributions = [];
+const numberOfDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
 
-                // Customize count for days after first 100 days and before last 100 days
-                const daysSinceStart = (date - startDate) / (1000 * 60 * 60 * 24);
-                const daysUntilEnd = (endDate - date) / (1000 * 60 * 60 * 24);
-                if (daysSinceStart > 100 && daysUntilEnd > 100) {
-                    count = Math.floor(Math.random() * 10); // Randomize count
-                } else if (daysSinceStart <= 100) {
-                    count = 0; // Set count to 0 for first 100 days
-                } else if (daysUntilEnd <= 100) {
-                    count = null; // Set count to null for last 100 days
-                }
+for (let i = 0; i < numberOfDays; i++) {
+    const date = new Date(startDate.getTime());
+    date.setDate(date.getDate() + i);
+    let count;
 
-                return {
-                    date: d3.timeFormat('%Y-%m-%d')(date),
-                    count: count
-                };
-            });
-        }).flat();
+    // Customize the contribution count logic as needed
+    // For example, simulate a pattern or use random values
+    if (i % 7 === 0) { // Simulate higher contributions on certain days
+        count = Math.floor(Math.random() * 10) + 5; // Random count between 5 and 14
+    } else {
+        count = Math.floor(Math.random() * 5); // Random count between 0 and 4
+    }
 
-        processAndRenderGraph(contributions);
+    contributions.push({
+        date: d3.timeFormat('%Y-%m-%d')(date),
+        count: count
     });
+}
+
+// Call the rendering function with the simulated contributions
+processAndRenderGraph(contributions);
 </script>
 
 
