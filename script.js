@@ -110,4 +110,81 @@ window.addEventListener('resize', function() {
     }, 100); // 100 milliseconds delay
 });
 
+///////////Cont graph
 
+const contributions = [
+    { date: "2023-02-27", count: 0 },
+    { date: "2023-02-28", count: 0 },
+    { date: "2023-03-01", count: 0 },
+    { date: "2023-03-02", count: 0 },
+    { date: "2023-03-03", count: 0 },
+    { date: "2023-03-04", count: 0 },
+    { date: "2023-03-05", count: 0 },
+    { date: "2023-03-06", count: 0 },
+    { date: "2023-03-07", count: 0 },
+    // Add more data points as needed
+  ];
+
+  // Dimensions and margins for the graph
+  const width = 960,
+        height = 136,
+        cellSize = 17; // cell size
+
+  const format = d3.timeFormat("%Y-%m-%d");
+
+  const timeWeek = d3.utcSunday;
+  const countDay = d => (d.getUTCDay() + 6) % 7;
+  const timeWeeks = d3.utcWeek.range(d3.utcYear(new Date()), new Date());
+
+  // SVG container
+  const svg = d3.select("#contribution-graph")
+    .selectAll("svg")
+    .data(d3.range(2023, 2024))
+    .join("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("viewBox", [0, 0, width, height])
+      .attr("font-family", "sans-serif")
+      .attr("font-size", 10)
+    .append("g")
+      .attr("transform", "translate(32,20)");
+
+  svg.append("text")
+    .attr("x", width - 5)
+    .attr("y", -5)
+    .attr("font-weight", "bold")
+    .attr("text-anchor", "end")
+    .text(d => d);
+
+  const rect = svg.append("g")
+    .attr("fill", "none")
+    .attr("stroke", "#ccc")
+    .selectAll("rect")
+    .data(d => d3.utcDays(new Date(d, 0, 1), new Date(d + 1, 0, 1)))
+    .join("rect")
+      .attr("width", cellSize - 1.5)
+      .attr("height", cellSize - 1.5)
+      .attr("x", (d, i) => (countDay(d) + timeWeek.count(d3.utcYear(d), d)) * cellSize + 0.5)
+      .attr("y", d => countDay(d) * cellSize + 0.5)
+      .datum(format);
+
+  const data = contributions.reduce((map, {date, count}) => {
+    map[date] = count;
+    return map;
+  }, {});
+
+  rect.filter(d => d in data)
+    .attr("fill", d => d3.interpolateRdYlGn(data[d] / 10))
+    .append("title")
+    .text(d => `${d}: ${data[d]}`);
+
+  // Add month borders
+  const month = svg.selectAll("g")
+    .data(d => d3.utcMonths(new Date(d, 0, 1), new Date(d + 1, 0, 1)))
+    .join("g");
+
+  month.filter((d, i) => i).append("path")
+    .attr("fill", "none")
+    .attr("stroke", "#000")
+    .attr("stroke-width", 0.5)
+    .attr("d", d => `M${(timeWeek.count(d3.utcYear(d), d) + 0.5) * cellSize},0V${7 * cellSize}`);
