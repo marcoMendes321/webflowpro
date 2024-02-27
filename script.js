@@ -113,96 +113,63 @@ window.addEventListener('resize', function() {
 </script>
 
 <script>
-const today = new Date();
-const startDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
-const endDate = today;
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    const startDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+    const endDate = new Date();
 
-function getDaySuffix(day) {
-    if (day > 3 && day < 21) return 'th';
-    switch (day % 10) {
-        case 1:  return "st";
-        case 2:  return "nd";
-        case 3:  return "rd";
-        default: return "th";
+    // Generate a year's worth of contribution data
+    const contributions = generateContributions(startDate, endDate);
+
+    processAndRenderGraph(contributions);
+
+    function generateContributions(start, end) {
+        let contributions = [];
+        for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
+            let count = Math.random() < 0.1 ? null : Math.floor(Math.random() * 101); // 10% chance of null, otherwise random between 0-100
+            contributions.push({
+                date: formatDate(dt),
+                count: count
+            });
+        }
+        return contributions;
     }
-}
 
-// Function to process and render the graph
-function processAndRenderGraph(contributions) {
-    const cellSize = 15;
-    const cellMargin = 1.5;
-    const cellActualSize = cellSize - cellMargin * 2;
-    const paddingLeftRight = 20;
-    const width = 53 * cellSize + paddingLeftRight * 2;
-    const height = 7 * cellSize + 20;
-    const topPadding = 30; // Add some space at the top for month labels
-    const paddingLeft = 32;
+    function formatDate(date) {
+        return date.toISOString().split('T')[0];
+    }
 
-    const maxContribution = Math.max(...contributions.map(d => d.count));
-    const colorScale = d3.scaleQuantize()
-        .domain([0, maxContribution])
-        .range(['#ebedf0', '#c6e48b', '#7bc96f', '#239a3b', '#196127']);
+    function processAndRenderGraph(contributions) {
+        const cellSize = 12; // Size of the square
+        const width = 53 * (cellSize + 1) + 1; // Full width of the graph
+        const height = 7 * (cellSize + 1) + 1; // Full height of the graph
 
-    const svg = d3.select('.contribution-graph').append('svg')
-        .attr('width', width + paddingLeft)
-        .attr('height', height)
-        .append('g')
-        .attr('transform', `translate(${paddingLeft}, ${topPadding})`);
+        const svg = d3.select('body').append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .attr('class', 'contribution-graph')
+            .style('background', '#fff');
 
-    const contributionMap = new Map(contributions.map(d => [d.date, d.count]));
+        const colorScale = d3.scaleQuantize()
+            .domain([0, d3.max(contributions, d => d.count)])
+            .range(['#ebf4fa', '#c2e0f4', '#95cced', '#68b7e1', '#3aa1d8']); // Define your color range here
 
-    const tooltip = d3.select('#tooltip');
+        const contributionMap = new Map(contributions.map(d => [d.date, d.count]));
 
-    svg.selectAll('.day')
-        .data(d3.timeDays(startDate, endDate))
-        .enter().append('rect')
-        .attr('class', 'day')
-        .attr('width', cellActualSize)
-        .attr('height', cellActualSize)
-        .attr('x', d => d3.timeWeek.count(d3.timeYear(startDate), d) * cellSize)
-        .attr('y', d => d.getDay() * cellSize)
-        .attr('fill', d => {
-            const count = contributionMap.get(d3.timeFormat('%Y-%m-%d')(d));
-            return colorScale(count || 0);
-        })
-        .on('mouseover', (event, d) => {
-            const dateStr = d3.timeFormat('%Y-%m-%d')(d);
-            const count = contributionMap.get(dateStr) || 0;
-            tooltip
-                .style('visibility', 'visible')
-                .text(`${dateStr}: ${count} contributions`);
-        })
-        .on('mousemove', event => {
-            tooltip
-                .style('top', (event.pageY - 10) + 'px')
-                .style('left', (event.pageX + 10) + 'px');
-        })
-        .on('mouseout', () => {
-            tooltip.style('visibility', 'hidden');
-        });
-
-    // Month labels
-    svg.selectAll('.month')
-        .data(d3.timeMonths(startDate, endDate))
-        .enter().append('text')
-        .attr('x', d => d3.timeWeek.count(d3.timeYear(d), d) * cellSize + 2)
-        .attr('y', -5)
-        .text(d => d3.timeFormat('%b')(d))
-        .attr('font-size', 10)
-        .attr('fill', '#767676');
-}
-
-// Generate contributions data
-const contributions = [];
-for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    contributions.push({
-        date: d3.timeFormat('%Y-%m-%d')(d),
-        count: Math.floor(Math.random() * 4) * (Math.random() > 0.75 ? 2 : 1) // Custom logic for count
-    });
-}
-
-// Call the rendering function with the generated contributions
-processAndRenderGraph(contributions);
+        svg.selectAll('.day')
+            .data(contributions)
+            .enter().append('rect')
+            .attr('class', 'day')
+            .attr('width', cellSize)
+            .attr('height', cellSize)
+            .attr('x', d => (new Date(d.date).getDay()) * (cellSize + 1))
+            .attr('y', d => (d3.timeWeek.count(d3.timeYear(startDate), new Date(d.date))) * (cellSize + 1))
+            .attr('fill', d => d.count === null ? '#ebedf0' : colorScale(d.count))
+            .append('title')
+            .text(d => `${d.date}: ${d.count === null ? 'No contributions' : d.count + ' contributions'}`);
+    }
+});
 </script>
+
 
 
