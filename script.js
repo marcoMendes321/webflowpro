@@ -139,28 +139,15 @@ function processAndRenderGraph(contributions) {
     const paddingLeft = 32;
 
     const maxContribution = Math.max(...contributions.map(d => d.count));
-
-    function calculateBreakpoints(maxValue) {
-        const breakpoints = [1];
-        let currentBreakpoint = 1;
-        while (currentBreakpoint < maxValue) {
-            currentBreakpoint *= 2; // This factor can be adjusted
-            breakpoints.push(currentBreakpoint);
-        }
-        return breakpoints;
-    }
-
-    const breakpoints = calculateBreakpoints(maxContribution);
-
     const colorScale = d3.scaleQuantize()
-        .domain([1, maxContribution])
-        .range(['#0a377b', '#1058c4', '#5b9af8', '#a1c5fb']);
+        .domain([0, maxContribution])
+        .range(['#ebedf0', '#c6e48b', '#7bc96f', '#239a3b', '#196127']);
 
     const svg = d3.select('.contribution-graph').append('svg')
         .attr('width', width + paddingLeft)
         .attr('height', height)
         .append('g')
-        .attr('transform', `translate(${paddingLeft}, 20)`);
+        .attr('transform', `translate(${paddingLeft}, ${topPadding})`);
 
     const contributionMap = new Map(contributions.map(d => [d.date, d.count]));
 
@@ -169,110 +156,52 @@ function processAndRenderGraph(contributions) {
     svg.selectAll('.day')
         .data(d3.timeDays(startDate, endDate))
         .enter().append('rect')
-            .attr('class', 'day')
-            .attr('width', cellActualSize)
-            .attr('height', cellActualSize)
-            .attr('x', d => {
-                const start = d3.timeWeek.floor(startDate);
-                return d3.timeWeek.count(start, d) * cellSize + cellMargin;
-            })
-            .attr('y', d => d.getDay() * cellSize + cellMargin)
-            .attr('rx', 2)
-            .attr('ry', 2)
-            .attr('fill', function(d) {
-                const formattedDate = d3.timeFormat('%Y-%m-%d')(d);
-                const count = contributionMap.get(formattedDate);
-                if (count === null) return '#080808';
-                if (count === 0) return '#222';
-                return colorScale(count);
-            })
-            .attr('stroke', function(d) {
-                const formattedDate = d3.timeFormat('%Y-%m-%d')(d);
-                const count = contributionMap.get(formattedDate);
-                return count === null ? '#222' : 'none';
-            })
-            .on('mouseover', (event, d) => {
-                const mapFormattedDate = d3.timeFormat('%Y-%m-%d')(d);
-                const contributionsCount = contributionMap.get(mapFormattedDate);
+        .attr('class', 'day')
+        .attr('width', cellActualSize)
+        .attr('height', cellActualSize)
+        .attr('x', d => d3.timeWeek.count(d3.timeYear(startDate), d) * cellSize)
+        .attr('y', d => d.getDay() * cellSize)
+        .attr('fill', d => {
+            const count = contributionMap.get(d3.timeFormat('%Y-%m-%d')(d));
+            return colorScale(count || 0);
+        })
+        .on('mouseover', (event, d) => {
+            const dateStr = d3.timeFormat('%Y-%m-%d')(d);
+            const count = contributionMap.get(dateStr) || 0;
+            tooltip
+                .style('visibility', 'visible')
+                .text(`${dateStr}: ${count} contributions`);
+        })
+        .on('mousemove', event => {
+            tooltip
+                .style('top', (event.pageY - 10) + 'px')
+                .style('left', (event.pageX + 10) + 'px');
+        })
+        .on('mouseout', () => {
+            tooltip.style('visibility', 'hidden');
+        });
 
-                const displayFormattedDate = d3.timeFormat('%b %-d')(d);
-                const dayOfMonth = d.getDate();
-                const displayDateWithSuffix = displayFormattedDate + getDaySuffix(dayOfMonth);
-
-                let tooltipText;
-                if (contributionsCount === null) {
-                    tooltipText = `Site Not Registered On ${displayDateWithSuffix}`;
-                } else if (contributionsCount !== undefined) {
-                    tooltipText = `${contributionsCount} publishes on ${displayDateWithSuffix}`;
-                } else {
-                    tooltipText = 'No publishes on this date';
-                }
-                tooltip.style('visibility', 'visible')
-                       .style('background', '#444')
-                       .style('border', 'none')
-                       .text(tooltipText);
-            })
-            .on('mousemove', (event) => {
-                tooltip.style('top', (event.pageY - 10) + 'px')
-                       .style('left', (event.pageX + 10) + 'px');
-            })
-            .on('mouseout', () => {
-                tooltip.style('visibility', 'hidden');
-            });
-
-    const dayLabels = [
-        { day: 'Mon', index: 1 },
-        { day: 'Wed', index: 3 },
-        { day: 'Fri', index: 5 }
-    ];
-    dayLabels.forEach(label => {
-        svg.append('text')
-            .text(label.day)
-            .attr('x', -10)
-            .attr('y', cellSize * label.index + cellSize / 2)
-            .attr('text-anchor', 'end')
-            .attr('alignment-baseline', 'middle')
-            .attr('style', 'font-size: 10px; fill: #aaa;');
-    });
-
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    // Month labels
     svg.selectAll('.month')
         .data(d3.timeMonths(startDate, endDate))
         .enter().append('text')
-            .text(d => monthNames[d.getMonth()])
-            .attr('x', d => {
-                const start = d3.timeWeek.floor(startDate);
-                return d3.timeWeek.count(start, d) * cellSize + cellMargin;
-            })
-            .attr('y', -5)
-            .attr('text-anchor', 'start')
-            .attr('style', 'font-size: 10px; fill: #aaa;');
+        .attr('x', d => d3.timeWeek.count(d3.timeYear(d), d) * cellSize + 2)
+        .attr('y', -5)
+        .text(d => d3.timeFormat('%b')(d))
+        .attr('font-size', 10)
+        .attr('fill', '#767676');
 }
 
-// Simulate a year's worth of contribution data
+// Generate contributions data
 const contributions = [];
-const numberOfDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-
-for (let i = 0; i < numberOfDays; i++) {
-    const date = new Date(startDate.getTime());
-    date.setDate(date.getDate() + i);
-    let count;
-
-    // Customize the contribution count logic as needed
-    // For example, simulate a pattern or use random values
-    if (i % 7 === 0) { // Simulate higher contributions on certain days
-        count = Math.floor(Math.random() * 10) + 5; // Random count between 5 and 14
-    } else {
-        count = Math.floor(Math.random() * 5); // Random count between 0 and 4
-    }
-
+for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     contributions.push({
-        date: d3.timeFormat('%Y-%m-%d')(date),
-        count: count
+        date: d3.timeFormat('%Y-%m-%d')(d),
+        count: Math.floor(Math.random() * 4) * (Math.random() > 0.75 ? 2 : 1) // Custom logic for count
     });
 }
 
-// Call the rendering function with the simulated contributions
+// Call the rendering function with the generated contributions
 processAndRenderGraph(contributions);
 </script>
 
