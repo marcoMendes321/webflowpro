@@ -1,4 +1,3 @@
-<script>
 // Import Matter.js
 const Engine = Matter.Engine,
       Render = Matter.Render,
@@ -110,6 +109,5 @@ window.addEventListener('resize', function() {
         updateGroundWidth(newGroundWidth);
     }, 100); // 100 milliseconds delay
 });
-</script>
 
 
